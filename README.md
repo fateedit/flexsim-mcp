@@ -25,11 +25,21 @@ http://localhost/webserver.dll
 
 > 若未启动：FlexSim 安装目录下找到 WebServer 服务启动方式（或通过 `start_webserver` 工具自动拉起，失败时需管理员权限）。
 
-### 2. 给模型安装 4 个基础 handler
+### 2. 给模型安装 4 个基础 handler（手动安装）
 
-handler 是模型树 `Tools/serverinterface/queryhandlers/` 下的功能节点，WebServer 通过它们向模型下达命令。
+handler 是模型树 `Tools/serverinterface/queryhandlers/` 下的功能节点，WebServer 通过它们向模型下达命令。**WebServer 只认这个固定路径**，且只在启动实例时加载 handler，因此安装步骤必须完整执行：
 
-**一键导入**：在 FlexSim 模型树中，右键 `Tools/serverinterface/queryhandlers` → **Paste / Import**，选择本仓库的 `handlers/queryhandlers.t`。导入后应出现 4 个 handler：
+1. 用 **FlexSim** 打开你的模型（.fsm）。
+2. 在模型树 `Tools` 节点下**新建子节点 `serverinterface`**（若已存在则跳过）；再在 `serverinterface` 下**新建子节点 `queryhandlers`**（若已存在则跳过）。最终路径为：
+   ```
+   Tools/serverinterface/queryhandlers
+   ```
+3. 选中 `queryhandlers` 节点，右键 → **Paste / Import**，选择本仓库的 `handlers/queryhandlers.t`，把内容粘贴进去。
+4. 确认 `Tools/serverinterface/queryhandlers/` 下出现 4 个节点：`template`、`create_object`、`connect_objects`、`delete_object`。
+5. **Ctrl+S 保存模型**（必须保存，否则重启后丢失）。
+6. **重新通过 WebServer 打开模型实例**：先停止 / 关闭当前实例，再重新打开（或重启 WebServer 服务）。WebServer 在实例启动时才扫描加载 `queryhandlers`，**不重启实例，新 handler 不会被识别**，调用会 404。
+
+安装后的 4 个 handler：
 
 | handler | 作用 | 参数 |
 |---|---|---|
