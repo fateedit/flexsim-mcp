@@ -53,9 +53,17 @@ handler 是模型树 `Tools/serverinterface/queryhandlers/` 下的功能节点�
 ### 3. 启动 MCP 服务器
 
 ```bash
-npm install        # 或直接运行，本服务器无第三方运行时依赖
-node electron/mcp-server.cjs
+node mcp-server.cjs
 ```
+
+本服务器是**纯 Node 脚本，无第三方依赖**，不需要 `npm install`。可选环境变量：
+
+| 变量 | 默认值 | 作用 |
+|---|---|---|
+| `FSW_REGISTRY` | `./registry.json` | 工具注册表路径 |
+| `FLEXSIM_WS_BASE` | `http://localhost/webserver.dll` | WebServer 地址 |
+| `FLEXSIM_WS_DIR` | `C:\Program Files (x86)\FlexSim Web Server\webserver` | `start_webserver` 使用的服务目录 |
+| `FLEXSIM_NODE` | `C:\Program Files\nodejs\node.exe` | `start_webserver` 使用的 node 路径 |
 
 服务器在 stdio 上按 MCP 协议与客户端通信（newline-delimited JSON-RPC 2.0）。
 
@@ -72,7 +80,7 @@ node electron/mcp-server.cjs
         transport: stdio
         command: C:\Program Files\nodejs\node.exe
         args:
-          - D:\path\to\electron-app\electron\mcp-server.cjs
+          - D:\path\to\mcp-server.cjs
         toolCallTimeoutMs: 120000
 ```
 
@@ -83,7 +91,7 @@ node electron/mcp-server.cjs
   "mcpServers": {
     "flexsim": {
       "command": "node",
-      "args": ["D:/path/to/electron-app/electron/mcp-server.cjs"]
+      "args": ["D:/path/to/mcp-server.cjs"]
     }
   }
 }
@@ -233,15 +241,13 @@ return replyNode;
 ## 目录结构
 
 ```
-electron-app/
-├── electron/
-│   ├── mcp-server.cjs     # ★ MCP 服务器（stdio）：23 个工具执行器
-│   ├── main.cjs           # Electron 主进程（可选：桌面壳）
-│   └── test-mcp-protocol.cjs  # 协议自测
-├── src/shared/registry.json   # ★ 单一事实来源：工具定义 / guide / prompts / 目录模板
-├── handlers/queryhandlers.t   # ★ 4 个基础 handler 节点文件（FlexSim 导入用）
-├── docs/                  # 部署日志等文档
-└── package.json
+flexsim-mcp/
+├── mcp-server.cjs         # ★ MCP 服务器（stdio）：唯一运行入口，23 个工具执行器
+├── registry.json          # ★ 工具注册表：工具定义 / guide / prompts / 部署模板（单一事实来源）
+├── handlers/
+│   └── queryhandlers.t    # ★ 4 个基础 handler 节点文件（FlexSim 模型导入用）
+├── README.md
+└── LICENSE
 ```
 
 ## License

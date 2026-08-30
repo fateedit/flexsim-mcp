@@ -3,7 +3,7 @@
  * ---------------------------------------------------------------
  * 把 registry.json 里定义的工具（WebServer handler 调用）包装成 MCP 协议，
  * 供 Claude Desktop / Cursor 等 MCP 客户端直接连接操作 FlexSim 模型。
- * 启动：electron . --mcp  或  node electron/mcp-server.cjs
+ * 启动：node mcp-server.cjs
  *
  * 注意：MCP stdio 协议下 stdout 只能输出 JSON-RPC 响应，日志一律走 stderr。
  */
@@ -12,7 +12,7 @@ const path = require('path')
 const readline = require('readline')
 const { spawn } = require('child_process')
 
-const REGISTRY_PATH = process.env.FSW_REGISTRY || path.join(__dirname, '..', 'src', 'shared', 'registry.json')
+const REGISTRY_PATH = process.env.FSW_REGISTRY || path.join(__dirname, 'registry.json')
 const BASE = process.env.FLEXSIM_WS_BASE || 'http://localhost/webserver.dll'
 const TIMEOUT = 30000
 
