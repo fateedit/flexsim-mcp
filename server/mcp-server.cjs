@@ -3,7 +3,7 @@
  * ---------------------------------------------------------------
  * 把 registry.json 里定义的工具（WebServer handler 调用）包装成 MCP 协议，
  * 供 Claude Desktop / Cursor 等 MCP 客户端直接连接操作 FlexSim 模型。
- * 启动：node mcp-server.cjs
+ * 启动（仓库根目录）：node server/mcp-server.cjs
  *
  * 注意：MCP stdio 协议下 stdout 只能输出 JSON-RPC 响应，日志一律走 stderr。
  */
