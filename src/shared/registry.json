@@ -1,0 +1,325 @@
+{
+  "version": 1,
+  "system_hint": "当前目标实例由平台选择（模型名+实例号）。除非用户明确指定其他模型，所有操作都用当前目标实例。",
+  "guide": "FlexSim 远程建模操作指南（AI 必读）\n====================\n\n【第一步：先确认 WebServer 在线】\n- 调 webserver_status：若 WebServer 未运行（:80 无响应），先用 start_webserver 启动它，再继续；启动失败提示用户检查 WebServer 安装目录或管理员权限。\n\n【工作流程】\n1. 先摸环境：list_instances 看在线实例、list_models 看可运行模型；目标不在线可用 open_model 启动（大模型加载慢，稍后 list_instances 确认）。\n2. 探索结构：list_tree 浏览任意路径（根层 MODEL:，子层相对路径如 Tools/ModelUnits 或对象名 Q1）；list_handlers 看已部署功能。\n3. 动手：按需求组合工具；改完用 get_node 回读验证。\n\n【硬性规则（违反会失败或出错）】\n1. 参数无关：调用 handler 时业务参数一律用通用名 value（对象/路径）、action（新值/动作）、name（新名）、msg（消息），绝不依赖 handler 自身名字的参数。\n2. 删除是异步的（3~8 秒生效）：delete_object 后不能立即用 get_node 验证（会残留误报）；稍后重试 delete_object 看是否返回 not found。\n3. 远程操作不持久：只改运行实例内存；部署/修改后要提醒用户：在 FlexSim 界面按 Ctrl+S 保存，否则重载/autosave 会恢复旧状态。\n4. 路径大小写敏感；中文/空格由执行器自动编码，路径本身要写对。\n5. 复合节点（数组）不能直接写，必须写其叶子子节点。\n6. 修改时间类节点（set_datetime / set_stop_time）后通常需要 control(reset) 才生效。\n7. 判断实体是否流动：读累计值（如 Queue 的 variable_nrreleased 累计释放数），瞬时 stats_content 可能为 0。\n8. 模型树根路径用 MODEL:（带冒号），空字符串会 404。\n9. handler 代码里不能用的命令：getmodeltime()（实测未定义，编译报错）；取仿真时间用 WebServer 内置 getruntime 或读节点 Tools/ModelUnits/ModelDateTimes/currentTime/modelTime。\n\n【部署新功能（插件架构核心）】\n- 任何新功能 = deploy_handler（copyhandler 原语）：name=新功能名，code=参数无关的 FlexScript。\n- 代码签名固定：treenode replyNode = param(1); treenode parsedRequestNode = param(2); 用 node(\"GET/value\", parsedRequestNode) 等读参数；结尾 setnodestr(replyNode, \"<status>success</status>...\"); return replyNode;。\n- 部署成功后立即用 call_handler 调用一次验证。\n- 缺现成 handler（如 rename_node/copy_object/get_stats/list_objects/set_code）时，用 deploy_handler 从目录模板部署（copy_handler 原语），部署后立即验证。\n\n【常用对象类型】\nSource / Sink / Queue / Processor / Dispatcher / Rack / Conveyor / AGV / Combiner / Separator / MergeSort / Transporter / Robot / Operator / ProcessFlow\n\n【典型场景】\n- 建模产线：create_object(类型,名字) → set_loc(坐标) → connect_objects(A 连接) → control(run) → get_node 看 variable_nrreleased 验证流动。\n- 加功能：deploy_handler(名字,参数无关代码) → call_handler 验证。\n- 改参数：write_node(叶子路径,新值) → control(reset) 生效。",
+  "tools": [
+    {
+      "name": "get_guide",
+      "description": "获取 FlexSim 远程建模操作指南（AI 必读）：工作流程、硬性规则（参数无关/异步删除/Ctrl+S 持久化/路径大小写等）、部署新功能方法与典型场景。建议动手前先调用。",
+      "parameters": { "type": "object", "properties": {}, "required": [] }
+    },
+    {
+      "name": "webserver_status",
+      "description": "检测 FlexSim WebServer（:80）是否在线。所有模型操作都依赖 WebServer，动手前先确认；不在线用 start_webserver 启动。",
+      "parameters": { "type": "object", "properties": {}, "required": [] }
+    },
+    {
+      "name": "start_webserver",
+      "description": "启动 FlexSim WebServer 服务（node index.js，端口 80）。若直接启动失败（端口绑定需要管理员权限）会自动尝试提权（可能弹 UAC 窗口）。启动后稍等几秒再用 webserver_status 确认。",
+      "parameters": { "type": "object", "properties": {}, "required": [] }
+    },
+    {
+      "name": "list_instances",
+      "description": "列出 WebServer 上所有运行中的模型实例（模型名+实例号）。操作前先调用确认目标模型在线。",
+      "parameters": { "type": "object", "properties": {}, "required": [] }
+    },
+    {
+      "name": "list_models",
+      "description": "列出 WebServer 上所有可运行的模型名（availablemodels）。用户要求打开某模型时，先查这个名字是否存在。",
+      "parameters": { "type": "object", "properties": {}, "required": [] }
+    },
+    {
+      "name": "open_model",
+      "description": "在 WebServer 上启动（打开）一个模型实例（createinstance）。大模型加载需要时间，启动后稍等几秒再用 list_instances 确认在线。若模型已在线则无需调用。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "model": { "type": "string", "description": "模型名（先 list_models 确认，如 ai）" }
+        },
+        "required": ["model"]
+      }
+    },
+    {
+      "name": "list_handlers",
+      "description": "列出目标模型已部署的所有 handler（功能）名称。handler 位于 Tools/serverinterface/queryhandlers 目录，是模型可通过 HTTP 调用的功能节点。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "model": { "type": "string", "description": "模型名，默认当前目标实例" },
+          "instance": { "type": "integer", "description": "实例号，默认当前目标实例" }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "get_node",
+      "description": "读取模型树节点值，返回 JSON（数字/字符串/复合数组）。路径大小写敏感；对象名（如 Q1）或完整路径（如 Tools/ModelUnits/ModelDateTimes/startTime/dateString）均可。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "description": "节点路径或对象名" }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "write_node",
+      "description": "写入模型树节点值（数字/字符串由模型自动判断）。写入复合（数组）节点会失败，必须写叶子子节点。修改时间类节点后通常需要 reset 才生效。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "description": "叶子节点路径" },
+          "value": { "type": "string", "description": "新值（文本形式，模型按节点类型自动转数字/字符串）" }
+        },
+        "required": ["path", "value"]
+      }
+    },
+    {
+      "name": "create_object",
+      "description": "从 FlexSim 对象库创建对象到模型。类型如 Source/Sink/Queue/Processor/Dispatcher/Rack/Conveyor/AGV/Combiner/Separator/MergeSort/Transporter/Robot/Operator/ProcessFlow 等。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "description": "对象类型（库类名，如 Queue）" },
+          "name": { "type": "string", "description": "对象名（如 Q2）" }
+        },
+        "required": ["type", "name"]
+      }
+    },
+    {
+      "name": "set_loc",
+      "description": "设置对象坐标 set_loc（x/y/z）。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "object": { "type": "string", "description": "对象名" },
+          "x": { "type": "number", "description": "X 坐标" },
+          "y": { "type": "number", "description": "Y 坐标" },
+          "z": { "type": "number", "description": "Z 坐标" }
+        },
+        "required": ["object", "x", "y", "z"]
+      }
+    },
+    {
+      "name": "connect_objects",
+      "description": "连接两个对象（A 连接=输出到输入，S 连接=共享）。contextdragconnection 语义，A 键建输入输出连接。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "from": { "type": "string", "description": "源对象名（上游）" },
+          "to": { "type": "string", "description": "目标对象名（下游）" },
+          "key": { "type": "string", "enum": ["A", "S"], "description": "连接类型，默认 A" }
+        },
+        "required": ["from", "to"]
+      }
+    },
+    {
+      "name": "delete_object",
+      "description": "删除对象/节点。注意：删除是异步操作，3~8 秒后模型界面才生效；删除后不能立即用 get_node 判断是否成功（会误报残留），应稍后重试 delete_object 看是否返回 not found。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "object": { "type": "string", "description": "对象/节点名" }
+        },
+        "required": ["object"]
+      }
+    },
+    {
+      "name": "list_tree",
+      "description": "浏览模型树任意路径的子节点（treelayer），返回子节点名与类型。root 用 MODEL: 或留空；子路径用相对路径（如 Tools/ModelUnits 或对象名 Q1）。用于探索模型结构、找节点路径。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "description": "树路径，留空或 MODEL: 表示模型根层" }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "add_node",
+      "description": "在模型树指定父节点下添加一个普通节点。add_node=&value=父路径&name=新节点名（参数无关）。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "parent": { "type": "string", "description": "父节点路径（如 Tools/ModelUnits/ModelDateTimes）" },
+          "name": { "type": "string", "description": "新节点名" }
+        },
+        "required": ["parent", "name"]
+      }
+    },
+    {
+      "name": "rename_node",
+      "description": "给模型树节点/对象改名。value=旧路径，name=新名。若模型未装 rename_node handler 会自动先部署再调用。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "description": "旧路径/旧名" },
+          "name": { "type": "string", "description": "新名" }
+        },
+        "required": ["path", "name"]
+      }
+    },
+    {
+      "name": "control",
+      "description": "仿真控制：run 运行 / stop 停止 / reset 重置（回到初始状态，时间类修改后需 reset 生效）。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": { "type": "string", "enum": ["run", "stop", "reset"], "description": "控制动作" }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "set_datetime",
+      "description": "设置模型开始时间，格式 YYYY-MM-DD HH:MM:SS（如 2026-08-25 08:30:00）。设置后需 reset 生效。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "datetime": { "type": "string", "description": "YYYY-MM-DD HH:MM:SS" }
+        },
+        "required": ["datetime"]
+      }
+    },
+    {
+      "name": "set_stop_time",
+      "description": "设置模型停止时间（秒）。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "seconds": { "type": "number", "description": "停止时间（秒），如 39600" }
+        },
+        "required": ["seconds"]
+      }
+    },
+    {
+      "name": "set_run_speed",
+      "description": "设置运行速度倍数。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "speed": { "type": "number", "description": "速度倍数，如 1 或 10" }
+        },
+        "required": ["speed"]
+      }
+    },
+    {
+      "name": "get_run_state",
+      "description": "查询运行状态（runstate 0/1）与当前模型时间。",
+      "parameters": { "type": "object", "properties": {}, "required": [] }
+    },
+    {
+      "name": "deploy_handler",
+      "description": "★ 核心：向目标模型部署（复制）一个新 handler（功能）。copy_handler=&value=模板&name=新名&code=新代码。业务参数必须用通用名（value/action/name/msg），绝不能读取 handler 自身名字的参数。部署后立即生效（仅当前实例内存），持久化需用户在 FlexSim 界面 Ctrl+S。部署成功后应调用一次验证。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "新 handler 名（小写字母数字，如 setqueuesize）" },
+          "code": { "type": "string", "description": "FlexScript 代码：param(1)=回复节点 replyNode，param(2)=请求树 parsedRequestNode；用 node(\"GET/value\", parsedRequestNode) 读参数；结束时 setnodestr(replyNode, \"<status>success</status>...\") 并 return replyNode" },
+          "template": { "type": "string", "description": "源模板 handler 名，默认 template（参数无关写节点版）" }
+        },
+        "required": ["name", "code"]
+      }
+    },
+    {
+      "name": "call_handler",
+      "description": "通用调用任意已部署 handler。参数用通用名：value（对象/路径）、action（值/动作）、name（新名）、msg（消息）。返回 XML/文本。调用前如不确定 handler 是否存在，先 list_handlers。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "handler": { "type": "string", "description": "handler 名，如 template / create_object / get_stats" },
+          "value": { "type": "string", "description": "通用参数 value（常为对象名或路径）" },
+          "action": { "type": "string", "description": "通用参数 action（常为新值或动作）" },
+          "name": { "type": "string", "description": "通用参数 name（常为新名字）" },
+          "msg": { "type": "string", "description": "通用参数 msg（消息）" }
+        },
+        "required": ["handler"]
+      }
+    }
+  ],
+  "catalog": [
+    {
+      "id": "ping",
+      "name": "探活 ping",
+      "category": "基础",
+      "desc": "返回 pong 与当前模型时间，用于确认实例响应。",
+      "params": [],
+      "code": "/** ping — 探活（无参数） */\ntreenode replyNode = param(1);\nsetnodestr(replyNode, \"<status>success</status><pong>1</pong><runtime>\" + numtostring(getmodeltime(),0,2) + \"</runtime>\");\nreturn replyNode;"
+    },
+    {
+      "id": "list_objects",
+      "name": "列出对象",
+      "category": "基础",
+      "desc": "列出模型（或指定路径）下的对象/节点名。value=可选路径（默认模型根）。响应为逗号分隔名单。",
+      "params": [
+        { "key": "value", "label": "路径（可选）", "optional": true }
+      ],
+      "code": "/** listobjects — 列出目录下节点名（参数无关：value=可选路径） */\ntreenode replyNode = param(1);\ntreenode parsedRequestNode = param(2);\ntreenode vn = node(\"GET/value\", parsedRequestNode);\ntreenode parent = model();\nif (vn && stringlen(gets(vn)) > 0) {\n\tparent = node(gets(vn), model());\n\tif (!objectexists(parent)) { setnodestr(replyNode, \"<status>error</status><reason>path not found</reason>\"); return replyNode; }\n}\nstring list = \"\";\nint count = 0;\nfor (int i = 1; i <= parent.subnodes.length; i++) {\n\ttreenode sub = parent.subnodes[i];\n\tstring nm = getnodename(sub);\n\tif (stringlen(nm) > 0) {\n\t\tif (count > 0) list += \",\";\n\t\tlist += nm;\n\t\tcount++;\n\t}\n}\nsetnodestr(replyNode, \"<status>success</status><count>\" + numtostring(count,0,0) + \"</count><names>\" + list + \"</names>\");\nreturn replyNode;"
+    },
+    {
+      "id": "get_stats",
+      "name": "读对象累计统计",
+      "category": "数据读取",
+      "desc": "读取对象的累计统计字段（默认 variable_nrreleased 累计释放数，判断实体流动用累计值而非瞬时值）。value=对象名，action=字段名（可选）。",
+      "params": [
+        { "key": "value", "label": "对象名" },
+        { "key": "action", "label": "字段名（默认 variable_nrreleased）", "optional": true }
+      ],
+      "code": "/** getstats — 读对象累计统计（参数无关：value=对象名, action=字段名） */\ntreenode replyNode = param(1);\ntreenode parsedRequestNode = param(2);\ntreenode vn = node(\"GET/value\", parsedRequestNode);\nif (!vn) { setnodestr(replyNode, \"<status>error</status><reason>missing value</reason>\"); return replyNode; }\nstring objName = gets(vn);\ntreenode obj = node(objName, model());\nif (!objectexists(obj)) { setnodestr(replyNode, \"<status>error</status><reason>object not found: \" + objName + \"</reason>\"); return replyNode; }\nstring field = \"variable_nrreleased\";\ntreenode an = node(\"GET/action\", parsedRequestNode);\nif (an && stringlen(gets(an)) > 0) field = gets(an);\ntreenode f = obj.find(field);\nif (!objectexists(f)) { setnodestr(replyNode, \"<status>error</status><reason>field not found: \" + field + \"</reason>\"); return replyNode; }\nstring val = numtostring(getnodenum(f), 0, 4);\nsetnodestr(replyNode, \"<status>success</status><object>\" + objName + \"</object><field>\" + field + \"</field><value>\" + val + \"</value>\");\nreturn replyNode;"
+    },
+    {
+      "id": "rename_node",
+      "name": "节点/对象改名",
+      "category": "建模",
+      "desc": "给节点或对象改名。value=旧路径/旧名，name=新名。",
+      "params": [
+        { "key": "value", "label": "旧路径/旧名" },
+        { "key": "name", "label": "新名" }
+      ],
+      "code": "/** renamenode — 节点/对象改名（参数无关：value=旧路径, name=新名） */\ntreenode replyNode = param(1);\ntreenode parsedRequestNode = param(2);\ntreenode vn = node(\"GET/value\", parsedRequestNode);\ntreenode nn = node(\"GET/name\", parsedRequestNode);\nif (!vn || !nn) { setnodestr(replyNode, \"<status>error</status><reason>missing value or name</reason>\"); return replyNode; }\nstring oldPath = gets(vn);\nstring newName = gets(nn);\ntreenode target = node(oldPath, model());\nif (!objectexists(target)) { setnodestr(replyNode, \"<status>error</status><reason>node not found: \" + oldPath + \"</reason>\"); return replyNode; }\nsetnodename(target, newName);\nsetnodestr(replyNode, \"<status>success</status><old>\" + oldPath + \"</old><new>\" + newName + \"</new>\");\nreturn replyNode;"
+    },
+    {
+      "id": "copy_object",
+      "name": "复制对象",
+      "category": "建模",
+      "desc": "复制已有对象生成新对象。value=源对象名，name=新对象名。",
+      "params": [
+        { "key": "value", "label": "源对象名" },
+        { "key": "name", "label": "新对象名" }
+      ],
+      "code": "/** copyobject — 复制对象（参数无关：value=源对象名, name=新名） */\ntreenode replyNode = param(1);\ntreenode parsedRequestNode = param(2);\ntreenode vn = node(\"GET/value\", parsedRequestNode);\ntreenode nn = node(\"GET/name\", parsedRequestNode);\nif (!vn || !nn) { setnodestr(replyNode, \"<status>error</status><reason>missing value or name</reason>\"); return replyNode; }\nstring srcName = gets(vn);\nstring newName = gets(nn);\ntreenode src = node(srcName, model());\nif (!objectexists(src)) { setnodestr(replyNode, \"<status>error</status><reason>object not found: \" + srcName + \"</reason>\"); return replyNode; }\ntreenode copy = createcopy(src, model());\nsetnodename(copy, newName);\nsetnodestr(replyNode, \"<status>success</status><object>\" + newName + \"</object>\");\nreturn replyNode;"
+    },
+    {
+      "id": "set_code",
+      "name": "原地改 handler 代码",
+      "category": "功能部署",
+      "desc": "原地修改已部署 handler 的代码（不新建）。value=handler名，action=新代码。改完立即生效，持久化需 Ctrl+S。",
+      "params": [
+        { "key": "value", "label": "handler 名" },
+        { "key": "action", "label": "新代码" }
+      ],
+      "code": "/** setcode — 原地修改 handler 代码（参数无关：value=handler名, action=新代码） */\ntreenode replyNode = param(1);\ntreenode parsedRequestNode = param(2);\ntreenode vn = node(\"GET/value\", parsedRequestNode);\ntreenode an = node(\"GET/action\", parsedRequestNode);\nif (!vn || !an) { setnodestr(replyNode, \"<status>error</status><reason>missing value or action</reason>\"); return replyNode; }\nstring hName = gets(vn);\nstring newCode = gets(an);\ntreenode handler = node(\"Tools/serverinterface/queryhandlers/\" + hName, model());\nif (!objectexists(handler)) { setnodestr(replyNode, \"<status>error</status><reason>handler not found: \" + hName + \"</reason>\"); return replyNode; }\nsetnodestr(handler, newCode);\nswitch_flexscript(handler, 1);\nbuildnodeflexscript(handler);\nsetnodestr(replyNode, \"<status>success</status><handler>\" + hName + \"</handler>\");\nreturn replyNode;"
+    }
+  ],
+  "prompts": [
+    {
+      "name": "model_overview",
+      "description": "了解当前模型：确认 WebServer/实例在线，列出已部署 handler 与模型结构概览",
+      "arguments": []
+    },
+    {
+      "name": "build_production_line",
+      "description": "按自然语言描述搭建一条产线（创建对象 → 定位 → 连线 → 运行 → 验证流动）",
+      "arguments": [
+        { "name": "description", "description": "产线描述，如：一条 Source→Queue→Processor→Sink 的产线，并运行 10 秒看释放数", "required": true }
+      ]
+    },
+    {
+      "name": "add_feature",
+      "description": "为当前模型添加一个新功能（handler）：描述需求，AI 生成参数无关代码并部署验证",
+      "arguments": [
+        { "name": "requirement", "description": "功能需求描述，如：能设置传送带速度的 handler", "required": true }
+      ]
+    }
+  ]
+}
