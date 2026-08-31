@@ -64,7 +64,7 @@
     },
     {
       "name": "write_node",
-      "description": "写入模型树节点值（数字/字符串由模型自动判断）。写入复合（数组）节点会失败，必须写叶子子节点。修改时间类节点后通常需要 reset 才生效。",
+      "description": "如未先读操作指南，请先调用 get_guide。写入模型树节点值（数字/字符串由模型自动判断）。写入复合（数组）节点会失败，必须写叶子子节点。修改时间类节点后通常需要 reset 才生效。",
       "parameters": {
         "type": "object",
         "properties": {
@@ -76,7 +76,7 @@
     },
     {
       "name": "create_object",
-      "description": "从 FlexSim 对象库创建对象到模型。类型如 Source/Sink/Queue/Processor/Dispatcher/Rack/Conveyor/AGV/Combiner/Separator/MergeSort/Transporter/Robot/Operator/ProcessFlow 等。",
+      "description": "如未先读操作指南，请先调用 get_guide。从 FlexSim 对象库创建对象到模型。类型如 Source/Sink/Queue/Processor/Dispatcher/Rack/Conveyor/AGV/Combiner/Separator/MergeSort/Transporter/Robot/Operator/ProcessFlow 等。",
       "parameters": {
         "type": "object",
         "properties": {
@@ -88,7 +88,7 @@
     },
     {
       "name": "set_loc",
-      "description": "设置对象坐标（x/y/z）。通过写入对象 spatial 节点实现，不依赖模型侧 set_loc handler（只装 4 个基础 handler 即可用）。注意：多个对象创建后默认堆叠在原点 (0,0,0)，创建后必须用本工具排布位置（如产线按 x=0,5,10,15 一字排开）。",
+      "description": "如未先读操作指南，请先调用 get_guide。设置对象坐标（x/y/z）。通过写入对象 spatial 节点实现，不依赖模型侧 set_loc handler（只装 4 个基础 handler 即可用）。注意：多个对象创建后默认堆叠在原点 (0,0,0)，创建后必须用本工具排布位置（如产线按 x=0,5,10,15 一字排开）。",
       "parameters": {
         "type": "object",
         "properties": {
@@ -102,7 +102,7 @@
     },
     {
       "name": "connect_objects",
-      "description": "连接两个对象（A 连接=输出到输入，S 连接=共享）。contextdragconnection 语义，A 键建输入输出连接。",
+      "description": "如未先读操作指南，请先调用 get_guide。连接两个对象（A 连接=输出到输入，S 连接=共享）。contextdragconnection 语义，A 键建输入输出连接。",
       "parameters": {
         "type": "object",
         "properties": {
@@ -115,7 +115,7 @@
     },
     {
       "name": "delete_object",
-      "description": "删除对象/节点。注意：删除是异步操作，3~8 秒后模型界面才生效；删除后不能立即用 get_node 判断是否成功（会误报残留），应稍后重试 delete_object 看是否返回 not found。",
+      "description": "如未先读操作指南，请先调用 get_guide。删除对象/节点。注意：删除是异步操作，3~8 秒后模型界面才生效；删除后不能立即用 get_node 判断是否成功（会误报残留），应稍后重试 delete_object 看是否返回 not found。",
       "parameters": {
         "type": "object",
         "properties": {
@@ -161,7 +161,7 @@
     },
     {
       "name": "control",
-      "description": "仿真控制：run 运行 / stop 停止 / reset 重置（回到初始状态，时间类修改后需 reset 生效）。",
+      "description": "如未先读操作指南，请先调用 get_guide。仿真控制：run 运行 / stop 停止 / reset 重置（回到初始状态，时间类修改后需 reset 生效）。",
       "parameters": {
         "type": "object",
         "properties": {
