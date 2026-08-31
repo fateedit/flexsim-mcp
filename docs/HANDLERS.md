@@ -137,6 +137,20 @@ return replyNode;
 
 ---
 
+## 设置对象位置（重要）
+
+`create_object` 创建的对象**默认堆叠在原点 (0,0,0)**，多个对象会完全重叠、无法观看。创建后必须设置坐标排布，例如产线对象按 x=0,5,10,15 一字排开（y/z 保持 0）。
+
+MCP 工具 `set_loc` 已内置此能力（通过 template 写 `对象名>spatial/1`、`spatial/2`、`spatial/3`，即 x/y/z），**不依赖模型侧额外 handler**，只装 4 个基础 handler 即可用。手动调用等价于：
+
+```
+/webserver.dll?queryinstance=ai&instancenum=1&template=&value=Queue1>spatial/1&action=5
+```
+
+`spatial/1` = X 坐标，`spatial/2` = Y 坐标，`spatial/3` = Z 坐标（叶子节点，可写）。
+
+---
+
 ## 硬性规则（踩坑总结）
 
 1. **参数无关**：调 handler 时业务参数一律用通用名 `value` / `action` / `name` / `msg`，绝不依赖 handler 自身名字的参数。
@@ -147,3 +161,4 @@ return replyNode;
 6. **修改时间类节点后通常需要 reset** 才生效。
 7. **模型树根路径用 `MODEL:`**（带冒号），空字符串会 404。
 8. **handler 代码里不能用 `getmodeltime()`**（实测未定义，编译报错）；取仿真时间用 WebServer 内置 `getruntime` 或读 `Tools/ModelUnits/ModelDateTimes/currentTime/modelTime`。
+9. **对象位置**：创建的对象默认堆叠在原点，必须用 `set_loc` 排布坐标（如产线按 x=0,5,10,15 一字排开），这是建模的默认步骤。

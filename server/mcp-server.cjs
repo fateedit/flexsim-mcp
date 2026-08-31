@@ -255,10 +255,17 @@ async function executeTool(name, args) {
       break
     }
     case 'set_loc': {
-      const r = await get(append(cmdRoot(cfg), {
-        set_loc: '', value: String(args.object || ''), x: Number(args.x || 0), y: Number(args.y || 0), z: Number(args.z || 0)
-      }))
-      out = summarizeXml(r.text)
+      // 不依赖模型侧 set_loc handler：用 template 直接写 spatial 坐标节点（x/y/z）
+      const obj = String(args.object || '')
+      const x = Number(args.x ?? 0)
+      const y = Number(args.y ?? 0)
+      const z = Number(args.z ?? 0)
+      const parts = []
+      for (const [axis, v] of [['1', x], ['2', y], ['3', z]]) {
+        const r = await writeNode(cfg, `${obj}>spatial/${axis}`, String(v))
+        parts.push(`spatial/${axis}=${v}`)
+      }
+      out = `已设置 ${obj} 位置：` + parts.join('，')
       break
     }
     case 'connect_objects': {
