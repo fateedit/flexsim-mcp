@@ -35,7 +35,7 @@ Handlers live under `Tools/serverinterface/queryhandlers/` in the model tree. **
    - **Option 1 (import as children)**: select the `queryhandlers` node → right-click → **Paste / Import** → choose `handlers/queryhandlers.t` to paste the 4 handlers in as child nodes.
    - **Option 2 (overwrite whole node)**: create a new child node under `Tools` → right-click → **Paste / Import** → choose `handlers/queryhandlers.t` to **overwrite** that node (the file is the complete `queryhandlers` node; after overwrite it becomes `queryhandlers` containing the 4 handlers). If needed, rename the node to `queryhandlers` and move it under `Tools/serverinterface/`.
 
-> ⚠️ **Always import/overwrite with the file — don't hand-create nodes and paste code**: hand-created nodes default to a non-flexscript type, so the handler code won't compile. `queryhandlers.t` already carries the correct node types and structure.
+> 💡 **Recommended: import/overwrite with the file** (beginner-friendly, avoids type pitfalls): `queryhandlers.t` already carries the correct node types and structure. If you hand-create nodes instead, **you must set the node type to flexscript**, otherwise the handler code won't compile.
 
 4. Verify the 4 nodes appear under `Tools/serverinterface/queryhandlers/`: `template`, `create_object`, `connect_objects`, `delete_object`.
 5. **Ctrl+S to save the model** (mandatory — otherwise handlers are lost on reload).

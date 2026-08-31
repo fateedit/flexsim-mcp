@@ -35,7 +35,7 @@ handler 是模型树 `Tools/serverinterface/queryhandlers/` 下的功能节点�
    - **方式一（子节点导入）**：选中 `queryhandlers` 节点 → 右键 → **Paste / Import** → 选择 `handlers/queryhandlers.t`，把 4 个 handler 作为子节点粘贴进去。
    - **方式二（整节点覆盖）**：在 `Tools` 下新建一个子节点 → 右键 → **Paste / Import** 选择 `handlers/queryhandlers.t` **粘贴覆盖**该节点（文件是完整的 queryhandlers 节点，覆盖后即为 `queryhandlers`，内含 4 个 handler）；必要时把节点改名为 `queryhandlers` 并移到 `Tools/serverinterface/` 下。
 
-> ⚠️ **务必用文件导入 / 覆盖，不要手工新建节点再填代码**：手工新建的节点默认不是 flexscript 类型，handler 代码无法编译执行。`queryhandlers.t` 已包含正确的节点类型与参数结构（flexscript），导入 / 覆盖即用。
+> 💡 **推荐用文件导入 / 覆盖**（新手友好，避免踩类型坑）：`queryhandlers.t` 已包含正确的节点类型与参数结构，导入即用。若你选择手工新建节点填代码，**必须把节点类型设置为 flexscript**，否则 handler 代码无法编译执行。
 
 4. 确认 `Tools/serverinterface/queryhandlers/` 下出现 4 个节点：`template`、`create_object`、`connect_objects`、`delete_object`。
 5. **Ctrl+S 保存模型**（必须保存，否则重启后丢失）。
