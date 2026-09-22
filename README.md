@@ -154,13 +154,113 @@ flexsim-mcp/
 │   └── registry.json          # ★ 工具注册表：工具定义 / guide / prompts / 部署模板
 ├── handlers/
 │   └── queryhandlers.t        # ★ 4 个基础 handler 节点文件（FlexSim 模型导入用）
+├── tests/
+│   └── test-mcp-protocol.cjs  # 端到端 stdio 协议测试（不需要 FlexSim）
 ├── docs/
-│   └── HANDLERS.md            # handler 详解与硬性规则
+│   └── HANDLERS.md            # handler 详解、执行模型、FlexScript 函数存在性
+├── AGENTS.md                  # 给 AI 编码助手的仓库指南
 ├── README.md                  # 中文文档（默认）
 ├── README.en.md               # English
 ├── LICENSE
 └── .gitignore
 ```
+
+## JSON-RPC 调用示例
+
+服务器是标准 **JSON-RPC 2.0 over stdio**（每行一条消息，换行分隔）。下面每条都可以直接粘进 `stdin`。
+
+**① 握手**（必须先做，之后才能调工具）
+```json
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"my-client","version":"1.0.0"}}}
+```
+响应里带 `capabilities`（tools / prompts）、`serverInfo`，以及 **`instructions`**（操作指南全文，建议读）。
+
+**② 握手完成通知**（无 `id`，不需要响应）
+```json
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+```
+
+**③ 列工具**
+```json
+{"jsonrpc":"2.0","id":2,"method":"tools/list"}
+```
+
+**④ 调工具** —— 参数一律放在 `arguments` 里；`get_guide` 无参数：
+```json
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_guide","arguments":{}}}
+```
+
+**⑤ 建对象 → 摆位置 → 连线**
+```json
+{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"create_object","arguments":{"type":"Queue","name":"Q1"}}}
+{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"set_loc","arguments":{"object":"Q1","x":5,"y":0,"z":0}}}
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"connect_objects","arguments":{"from":"Source1","to":"Q1","key":"A"}}}
+```
+
+**⑥ 读节点 / 写节点**
+```json
+{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"get_node","arguments":{"path":"Q1"}}}
+{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"write_node","arguments":{"path":"Q1>variables/maxcontent","value":"10"}}}
+```
+
+**⑦ 运行控制**
+```json
+{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"control","arguments":{"action":"reset"}}}
+{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"control","arguments":{"action":"run"}}}
+```
+
+**⑧ 提示模板**（prompts 能力）
+```json
+{"jsonrpc":"2.0","id":11,"method":"prompts/list"}
+{"jsonrpc":"2.0","id":12,"method":"prompts/get","params":{"name":"build_production_line","arguments":{"description":"一条 Source→Queue→Processor→Sink 的产线"}}}
+```
+
+> **错误约定**：工具执行失败走 `result.isError: true`（MCP 规范），**不是** JSON-RPC `error`。
+> 只有协议层错误才用 `error`：`-32700` 解析失败 / `-32601` 方法不存在 / `-32602` 参数无效。
+
+## 测试
+
+```bash
+# 协议端到端测试（起真实 stdio 客户端，不需要 FlexSim）
+node tests/test-mcp-protocol.cjs
+
+# 语法自检
+node --check server/mcp-server.cjs
+```
+
+`test-mcp-protocol.cjs` 覆盖 10 组断言：握手与能力协商、`tools/list` 完整性、`tools/call` 成功与失败路径、错误码（`-32601`/`-32602`/`isError`）、`id` 回填、`prompts`、以及 **stdout 纪律**（确认 stdout 只有 JSON-RPC、日志全走 stderr）。
+
+> ⚠️ 这个测试要 `child_process.spawn` + 管道。**受限沙箱会报 `spawn EPERM`，那不是测试失败。**
+
+## 故障排查
+
+**`list_handlers` 返回空 / 调用 handler 一律 404**
+1. 模型里**没有装 handler** → 按「快速开始」第 2 步导入，注意节点类型必须是 **flexscript**
+2. 装了但**没重启实例** → handler 只在实例启动时加载，WebServer 里关掉再重开
+3. 装了但**没 Ctrl+S** → 重启后丢失
+4. 路径写错 → handler 必须在 `Tools/serverinterface/queryhandlers/` 下
+
+**`deploy_handler` 返回 404**
+模型里缺 **`copy_handler`**（它不在 4 个基础 handler 里）。见「快速开始」第 2.5 节。
+
+**`call_handler` 报 `object not found` / `node not found`**
+- 传了裸对象名，但目标是模型树里的**深层节点** → 改用完整路径
+- **删除 handler 必须给全路径**：`delete_object` 的 `value` 要写 `Tools/serverinterface/queryhandlers/<名字>`（裸名只在模型层找）
+
+**handler 改完不生效**
+handler 的执行体是**已编译代码**，改节点文本（`data`）**不会自动重编译**。新增/修改 handler 请用 `copy_handler`，它内部会调 `switch_flexscript` + `buildnodeflexscript`；改完记得 **Ctrl+S + 重启实例**。详见 [docs/HANDLERS.md](docs/HANDLERS.md)。
+
+**取不到仿真时间 / handler 编译报错**
+FlexScript 里**没有 `getmodeltime()`**（也没有 `savemodel` / `numtostr`）。取时间用 WebServer 内置 `getruntime`，或读节点 `Tools/ModelUnits/ModelDateTimes/currentTime/modelTime`。
+
+**HTTP 200 但正文是 `HTTP/1.1 404 Not Found`**
+WebServer 的已知怪行为：404/500 有时以「HTTP 200 + 正文状态行」返回。本服务器的 `get()` 已统一归一化，看到这种正文即表示真 404。
+
+**端口 80 起不来**
+`start_webserver` 需要管理员权限，会尝试提权（弹 UAC）。若仍失败，手动用管理员身份运行 WebServer 的 `flexsimserver.bat`。
+
+**想跑任意 FlexScript（像 `evaluate` 那样）**
+本架构**做不到**——WebServer 只放行「内置命令 + 已注册 handler + 实例管理」，实测 14 个 `evaluate` 类候选全部 404。需要该能力请用 FlexSimPy 通道（进程内加载 `flexsim.dll`，见同项目 `mcp_server/flexsim_mcp.py`）。
 
 ## License
 

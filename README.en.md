@@ -154,13 +154,113 @@ flexsim-mcp/
 │   └── registry.json          # ★ Tool registry: tool defs / guide / prompts / deploy templates
 ├── handlers/
 │   └── queryhandlers.t        # ★ 4 base handler nodes (import into FlexSim model)
+├── tests/
+│   └── test-mcp-protocol.cjs  # End-to-end stdio protocol test (no FlexSim needed)
 ├── docs/
-│   └── HANDLERS.md            # Handler deep dive & hard rules
+│   └── HANDLERS.md            # Handler deep dive, execution model, FlexScript findings
+├── AGENTS.md                  # Repository guide for AI coding agents
 ├── README.md                  # 中文文档（默认）
 ├── README.en.md               # English
 ├── LICENSE
 └── .gitignore
 ```
+
+## JSON-RPC examples
+
+The server speaks standard **JSON-RPC 2.0 over stdio** (one message per line). Every line below can be pasted into `stdin`.
+
+**① Handshake** (required before any tool call)
+```json
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"my-client","version":"1.0.0"}}}
+```
+The response carries `capabilities` (tools / prompts), `serverInfo`, and **`instructions`** (the full operating guide — worth reading).
+
+**② Initialized notification** (no `id`, no response expected)
+```json
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+```
+
+**③ List tools**
+```json
+{"jsonrpc":"2.0","id":2,"method":"tools/list"}
+```
+
+**④ Call a tool** — arguments always go inside `arguments`; `get_guide` takes none:
+```json
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_guide","arguments":{}}}
+```
+
+**⑤ Create → place → connect**
+```json
+{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"create_object","arguments":{"type":"Queue","name":"Q1"}}}
+{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"set_loc","arguments":{"object":"Q1","x":5,"y":0,"z":0}}}
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"connect_objects","arguments":{"from":"Source1","to":"Q1","key":"A"}}}
+```
+
+**⑥ Read / write a node**
+```json
+{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"get_node","arguments":{"path":"Q1"}}}
+{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"write_node","arguments":{"path":"Q1>variables/maxcontent","value":"10"}}}
+```
+
+**⑦ Run control**
+```json
+{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"control","arguments":{"action":"reset"}}}
+{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"control","arguments":{"action":"run"}}}
+```
+
+**⑧ Prompt templates**
+```json
+{"jsonrpc":"2.0","id":11,"method":"prompts/list"}
+{"jsonrpc":"2.0","id":12,"method":"prompts/get","params":{"name":"build_production_line","arguments":{"description":"a Source→Queue→Processor→Sink line"}}}
+```
+
+> **Error convention**: tool failures use `result.isError: true` (MCP spec), **not** a JSON-RPC `error`.
+> Only protocol-level failures use `error`: `-32700` parse error / `-32601` method not found / `-32602` invalid params.
+
+## Tests
+
+```bash
+# End-to-end protocol test (spawns a real stdio client; no FlexSim required)
+node tests/test-mcp-protocol.cjs
+
+# Syntax self-check
+node --check server/mcp-server.cjs
+```
+
+`test-mcp-protocol.cjs` covers 10 groups: handshake and capability negotiation, `tools/list` completeness, `tools/call` success and failure paths, error codes (`-32601` / `-32602` / `isError`), `id` echo, `prompts`, and **stdout discipline** (asserts stdout carries JSON-RPC only while logs go to stderr).
+
+> ⚠️ This test needs `child_process.spawn` with pipes. **A restricted sandbox will report `spawn EPERM` — that is not a test failure.**
+
+## Troubleshooting
+
+**`list_handlers` returns nothing / every handler call is 404**
+1. No handlers installed in the model → import per Quickstart step 2; node type **must be flexscript**
+2. Installed but the instance was **not restarted** → handlers load only at instance start; close and reopen it from WebServer
+3. Installed but **not Ctrl+S'd** → lost on restart
+4. Wrong location → handlers must sit under `Tools/serverinterface/queryhandlers/`
+
+**`deploy_handler` returns 404**
+The model lacks **`copy_handler`** (it is not one of the 4 base handlers). See Quickstart step 2.5.
+
+**`call_handler` reports `object not found` / `node not found`**
+- You passed a bare object name but the target is a deep tree node → use the full path
+- **Deleting a handler requires the full path**: `delete_object`'s `value` must be `Tools/serverinterface/queryhandlers/<name>` (a bare name is only resolved at model level)
+
+**Handler edits don't take effect**
+A handler's executing body is **compiled code**; editing the node text (`data`) does **not** recompile it. Use `copy_handler` to add or change handlers — it calls `switch_flexscript` + `buildnodeflexscript` internally. Then **Ctrl+S + restart the instance**. See [docs/HANDLERS.md](docs/HANDLERS.md).
+
+**Cannot read simulation time / handler fails to compile**
+FlexScript has **no `getmodeltime()`** (nor `savemodel` / `numtostr`). Use the built-in `getruntime`, or read the node `Tools/ModelUnits/ModelDateTimes/currentTime/modelTime`.
+
+**HTTP 200 with body `HTTP/1.1 404 Not Found`**
+A known WebServer quirk: 404/500 sometimes come back as "HTTP 200 + status line in the body". This server's `get()` normalizes it — such a body means a genuine 404.
+
+**Port 80 won't start**
+`start_webserver` needs administrator rights and will try to elevate (UAC prompt). If it still fails, run the WebServer's `flexsimserver.bat` as administrator.
+
+**I want to run arbitrary FlexScript (like `evaluate`)**
+Not possible in this architecture — WebServer only admits built-in commands, registered handler names, and instance management; 14 evaluate-style candidates all returned 404 in testing. For that capability use the FlexSimPy channel instead (loads `flexsim.dll` in-process; see `mcp_server/flexsim_mcp.py` in the same project).
 
 ## License
 
