@@ -41,6 +41,48 @@ Handlers live under `Tools/serverinterface/queryhandlers/` in the model tree. **
 5. **Ctrl+S to save the model** (mandatory — otherwise handlers are lost on reload).
 6. **Re-open the model instance through WebServer**: stop/close the current instance and open it again (or restart the WebServer service). **Without restarting the instance, new handlers are not recognized and calls return 404.**
 
+### 2.5 To use the plugin architecture (`deploy_handler`), install one more: `copy_handler`
+
+The 4 handlers above are the **minimal modeling set**: they cover `create_object` / `connect_objects` / `delete_object` / `write_node` / `set_loc` and run control.
+
+**`deploy_handler` (hot-deploying new features from the AI) is NOT among them** — it depends on a handler named **`copy_handler`** existing in the model. Why:
+
+- A handler's executing body is **compiled code**; editing the node text (`data`) does **not** trigger recompilation
+- Recompilation must be invoked from inside a handler via `switch_flexscript` + `buildnodeflexscript`
+- So **only `copy_handler` (copy node + write code + compile) can create new handlers**
+
+**Without it**, `deploy_handler` returns 404 and the self-growing capability is unavailable.
+
+Install it exactly like the base handlers (node type must be **flexscript**, then **Ctrl+S**, then **restart the instance**):
+
+```flexscript
+/** copy_handler — copy a handler and write new code (param-agnostic: value=template, name=new name, code=code) */
+treenode replyNode = param(1);
+treenode parsedRequestNode = param(2);
+treenode vn = node("GET/value", parsedRequestNode);
+treenode nn = node("GET/name", parsedRequestNode);
+treenode cn = node("GET/code", parsedRequestNode);
+if (!vn || !nn || !cn) { setnodestr(replyNode, "<status>error</status><reason>missing value/name/code</reason>"); return replyNode; }
+string tplName = gets(vn);
+string newName = gets(nn);
+string newCode = gets(cn);
+treenode src = node("Tools/serverinterface/queryhandlers/" + tplName, model());
+if (!objectexists(src)) { setnodestr(replyNode, "<status>error</status><reason>template not found: " + tplName + "</reason>"); return replyNode; }
+treenode parent = node("Tools/serverinterface/queryhandlers", model());
+treenode copy = createcopy(src, parent);
+if (!objectexists(copy)) { setnodestr(replyNode, "<status>error</status><reason>copy failed</reason>"); return replyNode; }
+setnodename(copy, newName);
+setnodestr(copy, newCode);
+switch_flexscript(copy, 1);
+buildnodeflexscript(copy);
+setnodestr(replyNode, "<status>success</status><handler>" + newName + "</handler><from>" + tplName + "</from>");
+return replyNode;
+```
+
+> 💡 After installing, self-check: ask the AI to `deploy_handler` a trivial `ping` (`<pong>1</pong>`). If that works, the self-growing chain is live.
+>
+> ⚠️ The 4 base handlers alone are enough for modeling — `copy_handler` only affects the "deploy new features on the fly" class of tools.
+
 ### 3. Start the MCP server
 
 ```bash

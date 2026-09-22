@@ -41,6 +41,48 @@ handler 是模型树 `Tools/serverinterface/queryhandlers/` 下的功能节点�
 5. **Ctrl+S 保存模型**（必须保存，否则重启后丢失）。
 6. **重新通过 WebServer 打开模型实例**：先停止 / 关闭当前实例，再重新打开（或重启 WebServer 服务）。**不重启实例，新 handler 不会被识别，调用会 404。**
 
+### 2.5 想用「插件架构 / AI 现场长功能」，还要再装一个 `copy_handler`
+
+上面 4 个 handler 是**最小建模集**：有了它们，`create_object` / `connect_objects` / `delete_object` / `write_node` / `set_loc` / 运行控制等工具都能用。
+
+但 **`deploy_handler`（让 AI 给模型热部署新功能）不在这 4 个里面**——它底层依赖模型侧存在一个名为 **`copy_handler`** 的 handler。原因：
+
+- handler 的执行体是**已编译的代码**，节点里的文本（`data`）**改了不会自动重编译**
+- 重编译必须由 handler 内部调用 `switch_flexscript` + `buildnodeflexscript`
+- 所以**只有 `copy_handler`（复制节点 + 写代码 + 编译）能造出新 handler**
+
+**不装 `copy_handler` 的后果**：`deploy_handler` 会返回 404，它的「自增长」能力用不了。
+
+装法与 4 个基础 handler 相同（节点类型必须是 **flexscript**，装完 **Ctrl+S** 再**重启实例**）：
+
+```flexscript
+/** copy_handler — 复制 handler 并写入新代码（参数无关：value=源模板, name=新名, code=代码） */
+treenode replyNode = param(1);
+treenode parsedRequestNode = param(2);
+treenode vn = node("GET/value", parsedRequestNode);
+treenode nn = node("GET/name", parsedRequestNode);
+treenode cn = node("GET/code", parsedRequestNode);
+if (!vn || !nn || !cn) { setnodestr(replyNode, "<status>error</status><reason>missing value/name/code</reason>"); return replyNode; }
+string tplName = gets(vn);
+string newName = gets(nn);
+string newCode = gets(cn);
+treenode src = node("Tools/serverinterface/queryhandlers/" + tplName, model());
+if (!objectexists(src)) { setnodestr(replyNode, "<status>error</status><reason>template not found: " + tplName + "</reason>"); return replyNode; }
+treenode parent = node("Tools/serverinterface/queryhandlers", model());
+treenode copy = createcopy(src, parent);
+if (!objectexists(copy)) { setnodestr(replyNode, "<status>error</status><reason>copy failed</reason>"); return replyNode; }
+setnodename(copy, newName);
+setnodestr(copy, newCode);
+switch_flexscript(copy, 1);
+buildnodeflexscript(copy);
+setnodestr(replyNode, "<status>success</status><handler>" + newName + "</handler><from>" + tplName + "</from>");
+return replyNode;
+```
+
+> 💡 装好后建议先自检：让 AI 调 `deploy_handler` 造一个最简单的 `ping`（`<pong>1</pong>`），能成功就说明这套自增长链路通了。
+>
+> ⚠️ 只装 4 个也能正常建模——`copy_handler` 只影响「现场部署新功能」这一类工具。
+
 ### 3. 启动 MCP 服务器
 
 ```bash
