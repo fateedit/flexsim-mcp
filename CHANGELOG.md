@@ -8,6 +8,7 @@
 
 - **源码与文档不再写死任何具体安装路径**：`FLEXSIM_WS_DIR` 默认改为空、`FLEXSIM_NODE` 默认使用当前 node 进程（`process.execPath`），README / 文档示例统一用 `<repo>` 占位符
 - `start_webserver` 在未设置 `FLEXSIM_WS_DIR` 时返回明确的可执行提示，不再猜测安装位置
+- **工具描述、指南与文档不再写出端点地址和端口号**：统一表述为「由 `FLEXSIM_WS_BASE` 指定」；代码里保留默认端点以保证开箱可用
 
 ### 迁移
 
