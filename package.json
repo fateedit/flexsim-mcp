@@ -1,0 +1,44 @@
+{
+  "name": "flexsim-mcp",
+  "version": "1.0.0",
+  "description": "MCP (Model Context Protocol) server for FlexSim WebServer — let any MCP client control FlexSim simulation models with natural language.",
+  "license": "MIT",
+  "author": "flexsim-ai contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fateedit/flexsim-mcp.git"
+  },
+  "homepage": "https://github.com/fateedit/flexsim-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/fateedit/flexsim-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "flexsim",
+    "simulation",
+    "digital-twin",
+    "ai"
+  ],
+  "bin": {
+    "flexsim-mcp": "server/mcp-server.cjs"
+  },
+  "main": "server/mcp-server.cjs",
+  "files": [
+    "server/",
+    "handlers/",
+    "docs/",
+    "AGENTS.md",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server/mcp-server.cjs",
+    "test": "node tests/test-mcp-protocol.cjs",
+    "check": "node --check server/mcp-server.cjs && node -e \"require('./server/registry.json')\""
+  }
+}

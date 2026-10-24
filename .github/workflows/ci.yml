@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Syntax check
+        run: node --check server/mcp-server.cjs
+
+      - name: Validate registry
+        run: node -e "const r=require('./server/registry.json'); if(!Array.isArray(r.tools)||!r.tools.length) process.exit(1); console.log('registry ok:', r.tools.length, 'tools,', r.prompts.length, 'prompts')"
+
+      - name: Protocol test
+        run: node tests/test-mcp-protocol.cjs

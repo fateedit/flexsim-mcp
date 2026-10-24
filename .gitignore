@@ -1,0 +1,4 @@
+node_modules
+*.log
+*.log.out
+.DS_Store
