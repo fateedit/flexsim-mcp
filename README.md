@@ -5,7 +5,7 @@
 基于 **FlexSim WebServer** 的 **MCP（Model Context Protocol）** 服务器。让 AI 助手（DeepSeek Harness / Claude / Cursor 等任何支持 MCP 的客户端）通过自然语言直接操控 FlexSim 仿真模型：创建对象、读写模型树节点、连接 / 删除对象、运行控制、甚至给模型热部署新功能。
 
 ```
-AI 客户端  ←(stdio, JSON-RPC 2.0)→  mcp-server.cjs  ←(HTTP :80)→  FlexSim WebServer  ←→  模型内的自定义 handler
+AI 客户端  ←(stdio, JSON-RPC 2.0)→  mcp-server.cjs  ←(HTTP)→  FlexSim WebServer  ←→  模型内的自定义 handler
 ```
 
 ## 特性
@@ -20,7 +20,7 @@ AI 客户端  ←(stdio, JSON-RPC 2.0)→  mcp-server.cjs  ←(HTTP :80)→  Fle
 ### 1. 环境要求
 
 - Node.js ≥ 18
-- FlexSim 且 **WebServer** 已启动（默认 `http://localhost/webserver.dll`，端口 80）
+- FlexSim 且 **WebServer** 已启动（地址由 `FLEXSIM_WS_BASE` 指定，默认连本机 WebServer）
 
 ### 2. 给模型安装 4 个自增 handler（手动安装）
 
@@ -63,7 +63,7 @@ node server/mcp-server.cjs
 | 变量 | 默认值 | 作用 |
 |---|---|---|
 | `FSW_REGISTRY` | `./registry.json`（相对脚本） | 工具注册表路径 |
-| `FLEXSIM_WS_BASE` | `http://localhost/webserver.dll` | WebServer 地址 |
+| `FLEXSIM_WS_BASE` | 本机 WebServer | WebServer 地址（可用环境变量覆盖） |
 | `FLEXSIM_MODEL` | 未设置 | 启动时默认锁定的模型名（如 `MyModel`） |
 | `FLEXSIM_INSTANCE` | `1` | 与 `FLEXSIM_MODEL` 配套的实例号 |
 | `FLEXSIM_WS_DIR` | 未设置（`start_webserver` 必填） | WebServer 服务目录（内含 `index.js`） |
@@ -229,7 +229,7 @@ FlexScript 里**没有 `getmodeltime()`**（也没有 `savemodel` / `numtostr`�
 **HTTP 200 但正文是 `HTTP/1.1 404 Not Found`**
 WebServer 的已知怪行为：404/500 有时以「HTTP 200 + 正文状态行」返回。本服务器的 `get()` 已统一归一化，看到这种正文即表示真 404。
 
-**端口 80 起不来**
+**WebServer 服务起不来**
 `start_webserver` 需要管理员权限，会尝试提权（弹 UAC）。若仍失败，手动用管理员身份运行 WebServer 的 `flexsimserver.bat`。
 
 **想跑任意 FlexScript（像 `evaluate` 那样）**

@@ -7,7 +7,7 @@
 FlexSim WebServer 的 **MCP（Model Context Protocol）服务器**。让任何 MCP 客户端（DeepSeek Harness / Claude Desktop / Cursor）通过自然语言操控 FlexSim 仿真模型：建对象、连线、读写模型树、运行控制、给模型热部署新 handler。
 
 ```
-AI 客户端  ←(stdio, JSON-RPC 2.0)→  mcp-server.cjs  ←(HTTP :80)→  FlexSim WebServer  ←→  模型内 handler
+AI 客户端  ←(stdio, JSON-RPC 2.0)→  mcp-server.cjs  ←(HTTP)→  FlexSim WebServer  ←→  模型内 handler
 ```
 
 **零第三方依赖**（仅需 Node.js ≥ 18）——这是核心卖点，别引入 npm 依赖。

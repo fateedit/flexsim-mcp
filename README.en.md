@@ -5,7 +5,7 @@
 An **MCP (Model Context Protocol)** server that lets AI assistants (DeepSeek Harness, Claude Desktop, Cursor, or any MCP client) control **FlexSim** simulation models through natural language: create objects, read/write model tree nodes, connect/delete objects, control the run, and even hot-deploy new model-side handlers.
 
 ```
-AI Client  ←(stdio, JSON-RPC 2.0)→  mcp-server.cjs  ←(HTTP :80)→  FlexSim WebServer  ←→  model handlers
+AI Client  ←(stdio, JSON-RPC 2.0)→  mcp-server.cjs  ←(HTTP)→  FlexSim WebServer  ←→  model handlers
 ```
 
 ## Features
@@ -20,7 +20,7 @@ AI Client  ←(stdio, JSON-RPC 2.0)→  mcp-server.cjs  ←(HTTP :80)→  FlexSi
 ### 1. Prerequisites
 
 - Node.js ≥ 18
-- FlexSim with WebServer running (default `http://localhost/webserver.dll`, port 80)
+- FlexSim with WebServer running (address comes from `FLEXSIM_WS_BASE`; defaults to the local WebServer)
 
 ### 2. Install the 4 self-growing handlers into your model
 
@@ -63,7 +63,7 @@ No `npm install` needed (zero dependencies). You can also run `npm i -g .` and s
 | Variable | Default | Purpose |
 |---|---|---|
 | `FSW_REGISTRY` | `./registry.json` (relative to the script) | Tool registry path |
-| `FLEXSIM_WS_BASE` | `http://localhost/webserver.dll` | WebServer base URL |
+| `FLEXSIM_WS_BASE` | local WebServer | WebServer base URL (override with this variable) |
 | `FLEXSIM_MODEL` | unset | Model to lock at startup (for example `MyModel`) |
 | `FLEXSIM_INSTANCE` | `1` | Instance number paired with `FLEXSIM_MODEL` |
 | `FLEXSIM_WS_DIR` | unset (required by `start_webserver`) | WebServer service dir (contains `index.js`) |

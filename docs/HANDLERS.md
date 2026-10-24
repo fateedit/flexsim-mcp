@@ -25,7 +25,7 @@
 ## 调用格式
 
 ```text
-http://localhost/webserver.dll?queryinstance={模型名}&instancenum={实例号}&{handler名}=&value=...&action=...
+{FLEXSIM_WS_BASE}?queryinstance={模型名}&instancenum={实例号}&{handler名}=&value=...&action=...
 ```
 
 ### 1. template — 写节点

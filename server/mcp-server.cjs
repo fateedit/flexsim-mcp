@@ -39,7 +39,7 @@ const WS_DIR = process.env.FLEXSIM_WS_DIR || ''
 const NODE_EXE = process.env.FLEXSIM_NODE || process.execPath
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-/** 检测 WebServer（:80）是否在线 */
+/** 检测 WebServer 是否在线 */
 async function checkWebserver() {
   const c = new AbortController()
   const t = setTimeout(() => c.abort(), 4000)
@@ -53,7 +53,7 @@ async function checkWebserver() {
   }
 }
 
-/** 直接启动 WebServer（当前用户权限；端口 80 绑定可能失败） */
+/** 直接启动 WebServer（当前用户权限；端口绑定可能失败） */
 function startWebserverDirect() {
   try {
     const proc = spawn(NODE_EXE, ['index.js'], {
@@ -219,8 +219,8 @@ async function executeTool(name, args) {
       break
     case 'webserver_status': {
       out = (await checkWebserver())
-        ? '<ok>WebServer 在线（:80 响应正常）</ok>'
-        : '<error>WebServer 未运行（:80 无响应）——请先调用 start_webserver 启动</error>'
+        ? '<ok>WebServer 在线（响应正常）</ok>'
+        : '<error>WebServer 未运行（无响应）——请先调用 start_webserver 启动</error>'
       break
     }
     case 'start_webserver': {
@@ -241,12 +241,12 @@ async function executeTool(name, args) {
         out = '<ok>已启动 WebServer（node index.js）</ok>'
         break
       }
-      // 端口 80 绑定通常需要管理员权限 → 提权（可能弹 UAC）
+      // 端口绑定通常需要管理员权限 → 提权（可能弹 UAC）
       await startWebserverElevated()
       await sleep(5000)
       out = (await checkWebserver())
         ? '<ok>已通过管理员权限启动 WebServer</ok>'
-        : '<error>启动失败：:80 仍无响应。请检查 WebServer 安装目录（' + WS_DIR + '）或手动运行启动脚本（需管理员）</error>'
+        : '<error>启动失败：WebServer 仍无响应。请检查 WebServer 安装目录（' + WS_DIR + '）或手动运行启动脚本（需管理员）</error>'
       break
     }
     case 'list_instances': {
