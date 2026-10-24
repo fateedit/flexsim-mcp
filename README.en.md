@@ -229,7 +229,7 @@ FlexScript has **no `getmodeltime()`** (nor `savemodel` / `numtostr`). Use the b
 **HTTP 200 with body `HTTP/1.1 404 Not Found`**
 A known WebServer quirk: 404/500 sometimes come back as "HTTP 200 + status line in the body". This server's `get()` normalizes it — such a body means a genuine 404.
 
-**Port 80 won't start**
+**WebServer won't start**
 `start_webserver` needs administrator rights and will try to elevate (UAC prompt). If it still fails, run the WebServer's `flexsimserver.bat` as administrator.
 
 **I want to run arbitrary FlexScript (like `evaluate`)**
