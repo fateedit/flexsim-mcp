@@ -34,9 +34,9 @@ let selectedTarget = process.env.FLEXSIM_MODEL
     }
   : null
 
-// WebServer 服务目录与 node（用于 start_webserver；可用环境变量覆盖）
-const WS_DIR = process.env.FLEXSIM_WS_DIR || 'C:\\Program Files (x86)\\FlexSim Web Server\\webserver'
-const NODE_EXE = process.env.FLEXSIM_NODE || 'C:\\Program Files\\nodejs\\node.exe'
+// WebServer 服务目录与 node 可执行文件：一律由环境变量提供，源码里不写死任何具体路径
+const WS_DIR = process.env.FLEXSIM_WS_DIR || ''
+const NODE_EXE = process.env.FLEXSIM_NODE || process.execPath
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 /** 检测 WebServer（:80）是否在线 */
@@ -226,6 +226,13 @@ async function executeTool(name, args) {
     case 'start_webserver': {
       if (await checkWebserver()) {
         out = '<ok>WebServer 已在线，无需启动</ok>'
+        break
+      }
+      // 不预设安装位置：没配就没有可靠的目标目录，直接给出可执行的提示
+      if (!WS_DIR) {
+        out =
+          '<error>未配置 WebServer 服务目录：请设置环境变量 FLEXSIM_WS_DIR 指向含 index.js 的 WebServer 目录' +
+          '（FLEXSIM_NODE 可选，默认使用当前 node 进程），或手动用管理员权限运行 WebServer 的启动脚本</error>'
         break
       }
       startWebserverDirect()

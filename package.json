@@ -1,6 +1,6 @@
 {
   "name": "flexsim-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP (Model Context Protocol) server for FlexSim WebServer — let any MCP client control FlexSim simulation models with natural language.",
   "license": "MIT",
   "author": "flexsim-ai contributors",

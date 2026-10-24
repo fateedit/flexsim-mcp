@@ -2,6 +2,17 @@
 
 本项目的重要变更记录。日期格式 `YYYY-MM-DD`。
 
+## 1.0.1 — 2026-10-24
+
+### 变更
+
+- **源码与文档不再写死任何具体安装路径**：`FLEXSIM_WS_DIR` 默认改为空、`FLEXSIM_NODE` 默认使用当前 node 进程（`process.execPath`），README / 文档示例统一用 `<repo>` 占位符
+- `start_webserver` 在未设置 `FLEXSIM_WS_DIR` 时返回明确的可执行提示，不再猜测安装位置
+
+### 迁移
+
+- 原先依赖默认安装目录直接调 `start_webserver` 的使用者，需要显式设置 `FLEXSIM_WS_DIR`（指向含 `index.js` 的 WebServer 目录）
+
 ## 1.0.0 — 2026-10-24
 
 首个公开发布版本。为公开发布做过一次整理：压缩开发历史为单次发布提交，移除开发期的本机绝对路径、个人信息与内部模型名示例。

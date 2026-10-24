@@ -66,8 +66,8 @@ No `npm install` needed (zero dependencies). You can also run `npm i -g .` and s
 | `FLEXSIM_WS_BASE` | `http://localhost/webserver.dll` | WebServer base URL |
 | `FLEXSIM_MODEL` | unset | Model to lock at startup (for example `MyModel`) |
 | `FLEXSIM_INSTANCE` | `1` | Instance number paired with `FLEXSIM_MODEL` |
-| `FLEXSIM_WS_DIR` | `C:\Program Files (x86)\FlexSim Web Server\webserver` | WebServer dir used by `start_webserver` |
-| `FLEXSIM_NODE` | `C:\Program Files\nodejs\node.exe` | Node executable used by `start_webserver` |
+| `FLEXSIM_WS_DIR` | unset (required by `start_webserver`) | WebServer service dir (contains `index.js`) |
+| `FLEXSIM_NODE` | current node process | Node executable used by `start_webserver` |
 
 When multiple model instances are online, the server no longer picks the first one implicitly. Call `select_target` first, or set `FLEXSIM_MODEL=MyModel` and `FLEXSIM_INSTANCE=1` in the MCP client environment.
 
@@ -82,9 +82,9 @@ Example for DeepSeek Harness (`cordis.patch.yml`):
       config:
         serverName: flexsim
         transport: stdio
-        command: C:\Program Files\nodejs\node.exe
+        command: node
         args:
-          - D:\path\to\flexsim-mcp\server\mcp-server.cjs
+          - <repo>/server/mcp-server.cjs
         toolCallTimeoutMs: 120000
 ```
 
@@ -95,7 +95,7 @@ For Claude Desktop / Cursor (`mcpServers`):
   "mcpServers": {
     "flexsim": {
       "command": "node",
-      "args": ["D:/path/to/flexsim-mcp/server/mcp-server.cjs"]
+      "args": ["<repo>/server/mcp-server.cjs"]
     }
   }
 }

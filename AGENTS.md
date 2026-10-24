@@ -87,7 +87,7 @@ node -e "require('./server/registry.json'); console.log('registry ok')"
   例：`Fix: registry ping used an undefined FlexScript function`
 - 正文说明**为什么**改、以及验证方式（跑了哪条命令）。
 - **不要提交**：模型文件、日志、`.pyd`/`.dll`、本机绝对路径。
-- FlexSim 安装路径必须走环境变量（`FLEXSIM_WS_DIR` / `FLEXSIM_NODE` / `FLEXSIM_WS_BASE`），**不写死进代码**。
+- FlexSim 安装路径必须走环境变量（`FLEXSIM_WS_DIR` / `FLEXSIM_NODE` / `FLEXSIM_WS_BASE`），**不写死进代码**——包括产品默认安装目录，也不写进文档示例。
 
 ## 安全
 

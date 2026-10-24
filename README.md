@@ -66,8 +66,8 @@ node server/mcp-server.cjs
 | `FLEXSIM_WS_BASE` | `http://localhost/webserver.dll` | WebServer 地址 |
 | `FLEXSIM_MODEL` | 未设置 | 启动时默认锁定的模型名（如 `MyModel`） |
 | `FLEXSIM_INSTANCE` | `1` | 与 `FLEXSIM_MODEL` 配套的实例号 |
-| `FLEXSIM_WS_DIR` | `C:\Program Files (x86)\FlexSim Web Server\webserver` | `start_webserver` 使用的服务目录 |
-| `FLEXSIM_NODE` | `C:\Program Files\nodejs\node.exe` | `start_webserver` 使用的 node 路径 |
+| `FLEXSIM_WS_DIR` | 未设置（`start_webserver` 必填） | WebServer 服务目录（内含 `index.js`） |
+| `FLEXSIM_NODE` | 当前 node 进程 | `start_webserver` 使用的 node 可执行文件 |
 
 多个模型实例同时在线时，服务器不会再隐式选择第一个实例。请先调用 `select_target`，或在 MCP 客户端环境变量中设置 `FLEXSIM_MODEL=MyModel`、`FLEXSIM_INSTANCE=1`。
 
@@ -82,9 +82,9 @@ node server/mcp-server.cjs
       config:
         serverName: flexsim
         transport: stdio
-        command: C:\Program Files\nodejs\node.exe
+        command: node
         args:
-          - D:\path\to\flexsim-mcp\server\mcp-server.cjs
+          - <repo>/server/mcp-server.cjs
         toolCallTimeoutMs: 120000
 ```
 
@@ -95,7 +95,7 @@ Claude Desktop / Cursor 等其他客户端的 `mcpServers` 配置同理：
   "mcpServers": {
     "flexsim": {
       "command": "node",
-      "args": ["D:/path/to/flexsim-mcp/server/mcp-server.cjs"]
+      "args": ["<repo>/server/mcp-server.cjs"]
     }
   }
 }
